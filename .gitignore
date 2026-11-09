@@ -1,0 +1,23 @@
+.gradle/
+.kotlin/
+build/
+/local.properties
+/.idea/
+*.iml
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+# Release signing material never goes into version control.
+/signing/
+keystore.properties
+*.jks
+*.keystore
+# Build outputs (APKs/AABs are far too big for Git; attach them to GitHub releases instead).
+/dist/
+*.apk
+*.aab
+# Tool caches that aren't part of the project.
+/.github/modernize/
+# Third-party sample files used only by the instrumented tests (not ours to redistribute).
+/app/src/androidTest/assets/media/compat/

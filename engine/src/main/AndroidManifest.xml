@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Network streams (http/https/rtsp URLs the user opens). Local playback never touches the network. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Keeps the CPU (and Wi-Fi for streams) awake while audio plays with the screen off. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Background playback notification. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <application>
+        <service
+            android:name=".service.PlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

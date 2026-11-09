@@ -1,0 +1,31 @@
+1
+00:00:00,400 --> 00:00:01,600
+Sidecar English <i>line</i> 1
+
+2
+00:00:01,900 --> 00:00:03,100
+Sidecar English <i>line</i> 2
+
+3
+00:00:03,400 --> 00:00:04,600
+Sidecar English <i>line</i> 3
+
+4
+00:00:04,900 --> 00:00:06,100
+Sidecar English <i>line</i> 4
+
+5
+00:00:06,400 --> 00:00:07,600
+Sidecar English <i>line</i> 5
+
+6
+00:00:07,900 --> 00:00:09,100
+Sidecar English <i>line</i> 6
+
+7
+00:00:09,400 --> 00:00:10,600
+Sidecar English <i>line</i> 7
+
+8
+00:00:10,900 --> 00:00:12,100
+Sidecar English <i>line</i> 8

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="24 24 60 60">
+  <defs>
+    <radialGradient id="bg" cx="54" cy="40" r="84" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1E3370"/><stop offset="1" stop-color="#0A1020"/>
+    </radialGradient>
+    <radialGradient id="bloom" cx="61.0" cy="54.0" r="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5B8CFF" stop-opacity="0.32"/><stop offset="1" stop-color="#5B8CFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cres" x1="34" y1="28" x2="74" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8EE3FF"/><stop offset="0.42" stop-color="#5B8CFF"/>
+      <stop offset="0.75" stop-color="#3D55D9"/><stop offset="1" stop-color="#8B7CFF"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="30" y1="30" x2="50" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.55"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="tri" x1="61.8" y1="43.0" x2="61.8" y2="65.0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#CFE0FF"/>
+    </linearGradient>
+    <linearGradient id="trimark" x1="55.8" y1="43.0" x2="69.8" y2="65.0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8EE3FF"/><stop offset="1" stop-color="#5B8CFF"/>
+    </linearGradient>
+  </defs>
+  
+  <path d="M76.583,35.954 A27,27 0 1,0 76.583,72.046 A22,22 0 1,1 76.583,35.954 Z" fill="url(#cres)"/>
+  <path d="M76.583,35.954 A27,27 0 1,0 76.583,72.046 A22,22 0 1,1 76.583,35.954 Z" fill="url(#sheen)"/>
+  <path d="M60.538,46.271 L69.124,51.229 Q73.924,54 69.124,56.771 L60.538,61.729 Q55.738,64.5 55.738,58.957 L55.738,49.043 Q55.738,43.5 60.538,46.271 Z" fill="url(#trimark)"/>
+</svg>

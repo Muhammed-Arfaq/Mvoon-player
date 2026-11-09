@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar glyph: gem silhouette with play cut-out (must be single-colour). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="62" android:viewportHeight="62">
+    <group android:translateX="-23" android:translateY="-23">
+        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+            android:pathData="M54,24 C72.5,24 84,37.5 84,54.5 C84,72 71,84 54,84 C36.5,84 24,71.5 24,54 C24,37 35.5,24 54,24 Z M46,44.5 C46,42.5 48.1,41.3 49.8,42.3 L65.2,51.8 C66.8,52.8 66.8,55.2 65.2,56.2 L49.8,65.7 C48.1,66.7 46,65.5 46,63.5 Z" />
+    </group>
+</vector>
