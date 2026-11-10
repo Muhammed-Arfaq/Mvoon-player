@@ -68,6 +68,8 @@ import app.mvoon.core.player.SubtitleFrame
 import app.mvoon.core.player.channelLayoutName
 import app.mvoon.core.util.resolutionLabel
 import app.mvoon.subtitles.SubtitlePlacementMath
+import app.mvoon.ui.library.AddToPlaylistDialog
+import app.mvoon.ui.library.rememberDeleteMedia
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -102,6 +104,8 @@ fun PlayerScreen(
     val prefs by vm.preferences.collectAsStateWithLifecycle()
     val resumeHint by vm.resumeHint.collectAsStateWithLifecycle()
     val preparing by vm.isPreparing.collectAsStateWithLifecycle()
+    val isFavorite by vm.isFavorite.collectAsStateWithLifecycle()
+    val libraryEntry by vm.libraryEntry.collectAsStateWithLifecycle()
 
     val landscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
     val item = state.currentItem
@@ -144,6 +148,42 @@ fun PlayerScreen(
             toast = null
         }
     }
+
+    // ------------------------------------------------------------ the playing file: favourite, playlist, delete
+    var addingToPlaylist by remember { mutableStateOf(false) }
+    // Playback pauses while Android asks, and carries on afterwards (with the next file if it was deleted).
+    var resumeAfterDelete by remember { mutableStateOf(false) }
+    val deleteMedia = rememberDeleteMedia(
+        onDeleted = { file ->
+            when {
+                !vm.onDeleted(file) -> onBack() // nothing left to play
+                resumeAfterDelete -> vm.engine.play()
+            }
+        },
+        onCancelled = { if (resumeAfterDelete) vm.engine.play() },
+    )
+    val fileActions = FileActions(
+        favorite = isFavorite.takeIf { libraryEntry != null && libraryEntry?.id == item?.id },
+        toggleFavorite = {
+            when (vm.toggleFavorite()) {
+                true -> showToast("Added to favourites")
+                false -> showToast("Removed from favourites")
+                null -> Unit
+            }
+        },
+        addToPlaylist = {
+            vm.panel = null
+            addingToPlaylist = true
+        },
+        delete = vm.deletable()?.let { file ->
+            {
+                vm.panel = null
+                resumeAfterDelete = vm.state.value.playWhenReady
+                vm.engine.pause()
+                deleteMedia(file)
+            }
+        },
+    )
     LaunchedEffect(Unit) {
         vm.events.collect { event ->
             when (event) {
@@ -466,7 +506,11 @@ fun PlayerScreen(
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         if (isAudio && !isInPip) {
-            AudioPlayerLayout(state, position, buffered, sleep, actions, vm::cycleRepeat, vm::toggleShuffle, safe)
+            AudioPlayerLayout(
+                state, position, buffered, sleep, actions, vm::cycleRepeat, vm::toggleShuffle, safe,
+                favorite = fileActions.favorite,
+                onFavorite = fileActions.toggleFavorite,
+            )
         } else {
             VideoSurface(
                 engine = vm.engine,
@@ -674,7 +718,12 @@ fun PlayerScreen(
                 visible = toast != null,
                 enter = fadeIn() + scaleIn(initialScale = 0.9f),
                 exit = fadeOut(),
-                modifier = Modifier.align(Alignment.TopCenter).padding(safe).padding(top = if (landscape) 76.dp else 120.dp, start = 24.dp, end = 24.dp),
+                // Centred in the free space when a side panel is open (landscape), so it isn't hidden.
+                modifier = Modifier.align(Alignment.TopCenter).padding(safe).padding(
+                    top = if (landscape) 76.dp else 120.dp,
+                    start = 24.dp,
+                    end = 24.dp + if (landscape && vm.panel != null) 400.dp else 0.dp,
+                ),
             ) { toast?.let { ToastPill(it) } }
 
             state.error?.let { error ->
@@ -689,7 +738,7 @@ fun PlayerScreen(
                 )
             }
 
-            PlayerPanelsLayer(vm, landscape, state, tracks, sleep, prefs, onLoadSubtitle = {
+            PlayerPanelsLayer(vm, landscape, state, tracks, sleep, prefs, fileActions, onLoadSubtitle = {
                 subtitlePicker.launch(arrayOf("application/x-subrip", "text/*", "application/octet-stream", "*/*"))
             }, onMoveSubtitles = {
                 vm.panel = null
@@ -699,8 +748,37 @@ fun PlayerScreen(
         }
     }
 
+    if (addingToPlaylist) {
+        val playlists by vm.playlists.collectAsStateWithLifecycle()
+        AddToPlaylistDialog(
+            items = listOfNotNull(item),
+            playlists = playlists,
+            onDismiss = { addingToPlaylist = false },
+            onAdd = { id ->
+                vm.addToPlaylist(id)
+                addingToPlaylist = false
+                showToast("Added to “${playlists.firstOrNull { it.playlist.id == id }?.playlist?.name ?: "playlist"}”")
+            },
+            onCreate = { name ->
+                vm.createPlaylist(name)
+                addingToPlaylist = false
+                showToast("Added to new playlist “${name.trim()}”")
+            },
+        )
+    }
+
     DisposableEffect(Unit) { onDispose { vm.persist() } }
 }
+
+/** What the player can do with the playing file itself (from the options panel, or the heart for songs). */
+private class FileActions(
+    /** Null when the file can't be a favourite (it isn't in the library). */
+    val favorite: Boolean?,
+    val toggleFavorite: () -> Unit,
+    val addToPlaylist: () -> Unit,
+    /** Null when the file can't be deleted from here (a stream, or another app's file). */
+    val delete: (() -> Unit)?,
+)
 
 @Composable
 private fun PlayerPanelsLayer(
@@ -710,6 +788,7 @@ private fun PlayerPanelsLayer(
     tracks: app.mvoon.core.player.TrackSet,
     sleep: app.mvoon.core.player.SleepTimerState,
     prefs: app.mvoon.core.settings.AppPreferences,
+    fileActions: FileActions,
     onLoadSubtitle: () -> Unit,
     onMoveSubtitles: () -> Unit,
 ) {
@@ -749,6 +828,10 @@ private fun PlayerPanelsLayer(
             Panel.SLEEP -> SleepPanel(sleep, vm::setSleepTimer, close)
             Panel.MORE -> MorePanel(
                 state, sleep, prefs.playback.backgroundPlayback,
+                favorite = fileActions.favorite,
+                onFavorite = fileActions.toggleFavorite,
+                onAddToPlaylist = fileActions.addToPlaylist,
+                onDelete = fileActions.delete,
                 onOpen = { vm.panel = it },
                 onRepeat = vm::cycleRepeat,
                 onShuffle = vm::toggleShuffle,

@@ -21,8 +21,8 @@ android {
         applicationId = "app.mvoon"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.6.0"
+        versionCode = 9
+        versionName = "1.7.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "LIBVLC_VERSION", "\"${libs.versions.libvlc.get()}\"")
         buildConfigField("String", "FFMPEG_DECODER_VERSION", "\"${libs.versions.ffmpegDecoder.get()}\"")

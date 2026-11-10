@@ -216,6 +216,7 @@ class PlaybackRouter(
     }
 
     override fun updateQueueItem(index: Int, item: PlayableItem) = current.updateQueueItem(index, item)
+    override fun removeFromQueue(itemId: String) = current.removeFromQueue(itemId)
     override fun play() = current.play()
     override fun pause() = current.pause()
     override fun togglePlayPause() = current.togglePlayPause()

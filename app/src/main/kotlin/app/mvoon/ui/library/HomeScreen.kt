@@ -193,7 +193,7 @@ fun HomeScreen(vm: LibraryViewModel, callbacks: HomeCallbacks) {
     val nowPlaying = vm.playerState.collectAsStateWithLifecycle().value.currentItem
 
     var actionRow by remember { mutableStateOf<LibraryRow?>(null) }
-    val deleteMedia = rememberDeleteMedia(vm)
+    val deleteMedia = rememberDeleteMedia(onDeleted = vm::onDeleted)
     var playlistTarget by remember { mutableStateOf<List<PlayableItem>?>(null) }
     var showSort by remember { mutableStateOf(false) }
     var showAdd by remember { mutableStateOf(false) }
@@ -252,7 +252,7 @@ fun HomeScreen(vm: LibraryViewModel, callbacks: HomeCallbacks) {
             onWatched = { vm.setWatched(row.media.id, it) },
             onAddToPlaylist = { playlistTarget = listOf(row.toPlayable()); actionRow = null },
             onHideFolder = { vm.hideFolder(row.media.folderKey) },
-            onDelete = { deleteMedia(row) },
+            onDelete = { deleteMedia(row.toDeletable()) },
         )
     }
     playlistTarget?.let { items ->

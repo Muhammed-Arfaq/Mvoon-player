@@ -267,6 +267,20 @@ class Media3PlayerEngine(private val context: Context) : AndroidPlayerEngine {
         }
     }
 
+    override fun removeFromQueue(itemId: String) {
+        val p = player ?: return
+        val index = queue.indexOfFirst { it.id == itemId }
+        if (index < 0) return
+        if (queue.size == 1) {
+            stop()
+            return
+        }
+        queue = queue.toMutableList().also { it.removeAt(index) }
+        // ExoPlayer moves on to the next item by itself when the current one is removed.
+        if (index < p.mediaItemCount) p.removeMediaItem(index)
+        publishState()
+    }
+
     override fun play() {
         val p = player ?: return
         if (p.playbackState == Player.STATE_ENDED) p.seekToDefaultPosition()

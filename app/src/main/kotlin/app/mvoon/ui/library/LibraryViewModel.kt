@@ -182,11 +182,9 @@ class LibraryViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** The file was deleted from the device: stop it if it's playing, and forget it everywhere. */
-    fun onDeleted(row: LibraryRow) {
-        val id = row.media.id
-        if (engine.state.value.currentItem?.id == id) engine.stop()
-        viewModelScope.launch { repo.removeDeleted(id) }
+    /** The file was deleted from the device: take it out of what's playing and forget it everywhere. */
+    fun onDeleted(file: DeletableFile) {
+        coordinator.onFileDeleted(file.id)
     }
 
     fun setVideoSort(order: SortOrder) = updateLibrary { it.copy(videoSort = order) }

@@ -25,7 +25,18 @@ import app.mvoon.core.settings.OrientationMode
 import app.mvoon.core.settings.PlaybackPreferences
 import app.mvoon.core.settings.SubtitlePlacement
 import app.mvoon.core.settings.SubtitleStyle
+import app.mvoon.library.db.MediaEntity
 import app.mvoon.playback.RestorePoint
+import app.mvoon.ui.library.DeletableFile
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class AspectMode(val label: String) {
@@ -53,12 +64,14 @@ enum class RotationChoice(val label: String) { AUTO("Auto-rotate"), LANDSCAPE("L
 
 enum class Panel { AUDIO, SUBTITLES, SUBTITLE_STYLE, SYNC, SPEED, SLEEP, MORE, INFO, QUEUE, ASPECT }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PlayerViewModel(app: Application, private val saved: SavedStateHandle) : AndroidViewModel(app) {
 
     private val container = app.appContainer
     val engine = container.engine
     private val coordinator = container.playback
     private val settings = container.settings
+    private val library = container.library
 
     val state = engine.state
     val tracks = engine.tracks
@@ -81,6 +94,18 @@ class PlayerViewModel(app: Application, private val saved: SavedStateHandle) : A
     var subtitlePreview by mutableStateOf(false)
 
     private val currentItemId: String? get() = state.value.currentItem?.id
+    private val currentIdFlow = state.map { it.currentItem?.id }.distinctUntilChanged()
+
+    /** The playing file's library entry; null for streams and files opened from other apps. */
+    val libraryEntry: StateFlow<MediaEntity?> = currentIdFlow
+        .mapLatest { id -> id?.let { library.media(it) } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val isFavorite: StateFlow<Boolean> = currentIdFlow
+        .flatMapLatest { id -> if (id == null) flowOf(false) else library.isFavorite(id) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val playlists = library.playlists.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // What the screen was showing, so it can come back after the engine was released. The whole queue
     // is kept in memory; the current item also goes into saved state for when Android ends the process.
@@ -308,6 +333,37 @@ class PlayerViewModel(app: Application, private val saved: SavedStateHandle) : A
     fun persist() {
         notePosition()
         coordinator.persistNow()
+    }
+
+    /** Favourites are library files; returns whether the playing file is a favourite now, or null if it can't be one. */
+    fun toggleFavorite(): Boolean? {
+        val id = libraryEntry.value?.id ?: return null
+        val favorite = !isFavorite.value
+        viewModelScope.launch { library.setFavorite(id, favorite) }
+        return favorite
+    }
+
+    fun addToPlaylist(playlistId: Long) {
+        val item = state.value.currentItem ?: return
+        viewModelScope.launch { library.addToPlaylist(playlistId, listOf(item)) }
+    }
+
+    fun createPlaylist(name: String) {
+        val item = state.value.currentItem ?: return
+        viewModelScope.launch { library.createPlaylist(name, listOf(item)) }
+    }
+
+    /** The playing file, if it can be deleted from here (library files and Android media files). */
+    fun deletable(): DeletableFile? {
+        val item = state.value.currentItem?.takeIf { !it.isStream } ?: return null
+        val entry = libraryEntry.value?.takeIf { it.id == item.id }
+        return DeletableFile.of(item.id, item.uri, item.title, item.kind, entry?.source, entry?.sizeBytes ?: item.sizeBytes)
+    }
+
+    /** The file is gone: play on with the next one. Returns false when nothing is left (the screen closes). */
+    fun onDeleted(file: DeletableFile): Boolean {
+        if (file.id == currentItemId) forgetRestorePoint()
+        return coordinator.onFileDeleted(file.id)
     }
 
     /** Press-and-hold fast playback starts at the speed chosen last time. */

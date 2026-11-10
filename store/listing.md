@@ -41,6 +41,7 @@ A LIBRARY THAT FEELS GOOD
 • "What's playing today?": your recently watched videos and recently played songs, one swipe away
 • One tap on the play button continues your last video where you left off
 • Folders (including SD cards), playlists, and delete what you don't need
+• While a video plays: add it to favourites or a playlist, or delete it, without leaving the player
 • Light and dark themes, smooth animations, and artwork for files without covers
 
 PRIVATE BY DESIGN

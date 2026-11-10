@@ -82,7 +82,12 @@ import app.mvoon.ui.theme.Brand
 import app.mvoon.ui.theme.TabularNumbers
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
+import com.composables.icons.lucide.Heart
+import com.composables.icons.lucide.ListPlus
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Trash2
 import com.composables.icons.lucide.ArrowLeftRight
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.FolderOpen
@@ -575,6 +580,12 @@ fun MorePanel(
     state: PlaybackState,
     sleep: SleepTimerState,
     backgroundPlay: Boolean,
+    /** Null when the file can't be a favourite (not in the library). */
+    favorite: Boolean?,
+    onFavorite: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    /** Null when the file can't be deleted from here (a stream, or another app's file). */
+    onDelete: (() -> Unit)?,
     onOpen: (Panel) -> Unit,
     onRepeat: () -> Unit,
     onShuffle: () -> Unit,
@@ -582,6 +593,18 @@ fun MorePanel(
     onClose: () -> Unit,
 ) {
     PanelTitle("Options", onClose)
+    // What to do with this file, while it plays.
+    Row(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        val tile = Modifier.weight(1f)
+        if (favorite != null) {
+            Tile(
+                if (favorite) Icons.Rounded.Favorite else Lucide.Heart, "Favourite", if (favorite) "Added" else "Add",
+                tile, active = favorite, accent = Brand.Coral, onClick = onFavorite,
+            )
+        }
+        Tile(Lucide.ListPlus, "Playlist", "Add to…", tile, onClick = onAddToPlaylist)
+        if (onDelete != null) Tile(Lucide.Trash2, "Delete", "From device", tile, danger = true, onClick = onDelete)
+    }
     FlowRow(Modifier.padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), maxItemsInEachRow = 3) {
         val tile = Modifier.weight(1f)
         Tile(Lucide.Gauge, "Speed", formatSpeed(state.speed), tile) { onOpen(Panel.SPEED) }
@@ -592,9 +615,9 @@ fun MorePanel(
             if (state.repeatMode == RepeatMode.ONE) Lucide.Repeat1 else Lucide.Repeat,
             "Repeat",
             when (state.repeatMode) { RepeatMode.OFF -> "Off"; RepeatMode.ALL -> "All"; RepeatMode.ONE -> "One" },
-            tile, state.repeatMode != RepeatMode.OFF, onRepeat,
+            tile, state.repeatMode != RepeatMode.OFF, onClick = onRepeat,
         )
-        Tile(Lucide.Shuffle, "Shuffle", if (state.shuffle) "On" else "Off", tile, state.shuffle, onShuffle)
+        Tile(Lucide.Shuffle, "Shuffle", if (state.shuffle) "On" else "Off", tile, state.shuffle, onClick = onShuffle)
         Tile(Lucide.Type, "Subtitle style", null, tile) { onOpen(Panel.SUBTITLE_STYLE) }
         Tile(Lucide.ListVideo, "Queue", "${state.queue.size}", tile) { onOpen(Panel.QUEUE) }
         Tile(Lucide.Info, "Info", null, tile) { onOpen(Panel.INFO) }
@@ -604,18 +627,38 @@ fun MorePanel(
 }
 
 @Composable
-private fun Tile(icon: ImageVector, label: String, value: String?, modifier: Modifier, active: Boolean = false, onClick: () -> Unit) {
+private fun Tile(
+    icon: ImageVector,
+    label: String,
+    value: String?,
+    modifier: Modifier,
+    active: Boolean = false,
+    accent: Color = Brand.Sky,
+    danger: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val tint = when {
+        danger -> Brand.Coral
+        active -> accent
+        else -> Color.White
+    }
     Column(
         modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(if (active) Brand.Sky.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.07f))
+            .background(
+                when {
+                    danger -> Brand.Coral.copy(alpha = 0.12f)
+                    active -> accent.copy(alpha = 0.22f)
+                    else -> Color.White.copy(alpha = 0.07f)
+                },
+            )
             .clickable(onClick = onClick)
             .padding(vertical = 14.dp, horizontal = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Icon(icon, null, tint = if (active) Brand.Sky else Color.White, modifier = Modifier.size(24.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White, maxLines = 1)
+        Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = if (danger) Brand.Coral else Color.White, maxLines = 1)
         Text(value ?: " ", style = MaterialTheme.typography.labelSmall, color = Dim, maxLines = 1)
     }
 }

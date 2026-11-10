@@ -310,6 +310,30 @@ class PlaybackCoordinator(
         _resumeHint.value = null
     }
 
+    /**
+     * A file was deleted from the device: take it out of what's playing and forget it everywhere.
+     * The playing file is followed by the next one in the queue; if nothing comes after it, playback
+     * stops. Returns false when nothing is left to play (the player screen then closes).
+     */
+    fun onFileDeleted(id: String): Boolean {
+        val s = engine.state.value
+        val index = s.queue.indexOfFirst { it.id == id }
+        val keepsPlaying = when {
+            index < 0 -> s.queue.isNotEmpty()
+            index == s.currentIndex && index == s.queue.lastIndex -> {
+                engine.stop()
+                false
+            }
+            else -> {
+                engine.removeFromQueue(id)
+                true
+            }
+        }
+        // After the queue changed, so a save for the deleted item can't land after it was forgotten.
+        scope.launch { library.removeDeleted(id) }
+        return keepsPlaying
+    }
+
     // ---------------------------------------------------------------- remembering
 
     fun rememberAudioChoice(itemId: String, audioIndex: Int?) {

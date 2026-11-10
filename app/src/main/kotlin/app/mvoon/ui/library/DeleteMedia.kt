@@ -40,6 +40,28 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
+/** What deleting a file needs to know: a library row, or the file playing in the player. */
+data class DeletableFile(
+    val id: String,
+    val uri: String,
+    val title: String,
+    val kind: MediaKind,
+    /** [Sources.MEDIA_STORE], [Sources.FOLDER], or null for a file that isn't in the library. */
+    val source: String?,
+    val sizeBytes: Long = 0,
+) {
+    /** Android's media library owns it, so Android 11+ can confirm and delete it in one step. */
+    val inMediaStore: Boolean get() = source == Sources.MEDIA_STORE || Uri.parse(uri).authority == MediaStore.AUTHORITY
+
+    companion object {
+        /** Null when the file can't be deleted from here (a stream, or another app's file). */
+        fun of(id: String, uri: String, title: String, kind: MediaKind, source: String?, sizeBytes: Long = 0): DeletableFile? =
+            DeletableFile(id, uri, title, kind, source, sizeBytes).takeIf { it.source != null || it.inMediaStore }
+    }
+}
+
+fun LibraryRow.toDeletable() = DeletableFile(media.id, media.uri, media.title, media.mediaKind, media.source, media.sizeBytes)
+
 private sealed interface DeleteOutcome {
     data object Deleted : DeleteOutcome
 
@@ -52,35 +74,47 @@ private sealed interface DeleteOutcome {
 }
 
 /**
- * "Delete from device" for library items. Returns the function that starts a deletion.
+ * "Delete from device", from the library or the player. Returns the function that starts a deletion;
+ * [onDeleted] runs once the file is really gone, [onCancelled] when it isn't (declined or failed).
  *
  * Files from Android's media library go through MediaStore: on Android 11+ the system shows its own
  * confirmation ([MediaStore.createDeleteRequest]), so Mvoon adds no second one. Older versions and
  * files in folders added with the folder picker get Mvoon's confirmation dialog first.
  */
 @Composable
-fun rememberDeleteMedia(vm: LibraryViewModel): (LibraryRow) -> Unit {
+fun rememberDeleteMedia(onDeleted: (DeletableFile) -> Unit, onCancelled: () -> Unit = {}): (DeletableFile) -> Unit {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val library by rememberUpdatedState(vm)
-    var confirming by remember { mutableStateOf<LibraryRow?>(null) }
-    // The row waiting for a system dialog (delete request, Android 10 approval or storage permission).
-    var waiting by remember { mutableStateOf<LibraryRow?>(null) }
+    val afterDelete by rememberUpdatedState(onDeleted)
+    val afterCancel by rememberUpdatedState(onCancelled)
+    var confirming by remember { mutableStateOf<DeletableFile?>(null) }
+    // The file waiting for a system dialog (delete request, Android 10 approval or storage permission).
+    var waiting by remember { mutableStateOf<DeletableFile?>(null) }
 
-    fun deleted(row: LibraryRow) {
-        library.onDeleted(row)
-        Toast.makeText(context, "Deleted “${row.media.title}”", Toast.LENGTH_SHORT).show()
+    fun deleted(row: DeletableFile) {
+        Toast.makeText(context, "Deleted “${row.title}”", Toast.LENGTH_SHORT).show()
+        afterDelete(row)
     }
 
     val systemRequest = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
         val row = waiting ?: return@rememberLauncherForActivityResult
         waiting = null
-        if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && row.media.source == Sources.MEDIA_STORE) {
+        if (result.resultCode != Activity.RESULT_OK) {
+            afterCancel()
+            return@rememberLauncherForActivityResult
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && row.inMediaStore) {
             deleted(row) // Android 11+: the system already deleted it.
         } else {
             // Android 10: access was granted, so this time the delete goes through.
-            scope.launch { if (deleteFile(context, row) == DeleteOutcome.Deleted) deleted(row) else failed(context, row) }
+            scope.launch {
+                if (deleteFile(context, row) == DeleteOutcome.Deleted) {
+                    deleted(row)
+                } else {
+                    failed(context, row)
+                    afterCancel()
+                }
+            }
         }
     }
     val writePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -88,12 +122,20 @@ fun rememberDeleteMedia(vm: LibraryViewModel): (LibraryRow) -> Unit {
         waiting = null
         if (!granted) {
             Toast.makeText(context, "Mvoon needs storage permission to delete files", Toast.LENGTH_LONG).show()
+            afterCancel()
             return@rememberLauncherForActivityResult
         }
-        scope.launch { if (deleteFile(context, row) == DeleteOutcome.Deleted) deleted(row) else failed(context, row) }
+        scope.launch {
+            if (deleteFile(context, row) == DeleteOutcome.Deleted) {
+                deleted(row)
+            } else {
+                failed(context, row)
+                afterCancel()
+            }
+        }
     }
 
-    fun deleteConfirmed(row: LibraryRow) = scope.launch {
+    fun deleteConfirmed(row: DeletableFile) = scope.launch {
         when (val outcome = deleteFile(context, row)) {
             DeleteOutcome.Deleted -> deleted(row)
             is DeleteOutcome.NeedsApproval -> {
@@ -104,20 +146,26 @@ fun rememberDeleteMedia(vm: LibraryViewModel): (LibraryRow) -> Unit {
                 waiting = row
                 writePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
-            is DeleteOutcome.Failed -> Toast.makeText(context, outcome.message, Toast.LENGTH_LONG).show()
+            is DeleteOutcome.Failed -> {
+                Toast.makeText(context, outcome.message, Toast.LENGTH_LONG).show()
+                afterCancel()
+            }
         }
     }
 
     confirming?.let { row ->
-        val what = if (row.media.mediaKind == MediaKind.AUDIO) "song" else "video"
+        val what = if (row.kind == MediaKind.AUDIO) "song" else "video"
         AlertDialog(
-            onDismissRequest = { confirming = null },
+            onDismissRequest = {
+                confirming = null
+                afterCancel()
+            },
             icon = { Icon(Lucide.Trash2, null) },
             title = { Text("Delete this $what?") },
             text = {
                 Text(
-                    "“${row.media.title}”" +
-                        (row.media.sizeBytes.takeIf { it > 0 }?.let { " (${formatFileSize(it)})" } ?: "") +
+                    "“${row.title}”" +
+                        (row.sizeBytes.takeIf { it > 0 }?.let { " (${formatFileSize(it)})" } ?: "") +
                         " will be permanently deleted from this device. This can't be undone.",
                 )
             },
@@ -126,15 +174,20 @@ fun rememberDeleteMedia(vm: LibraryViewModel): (LibraryRow) -> Unit {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = { confirming = null }) { Text("Cancel") } },
+            dismissButton = {
+                TextButton(onClick = {
+                    confirming = null
+                    afterCancel()
+                }) { Text("Cancel") }
+            },
         )
     }
 
     return remember(context) {
         { row ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && row.media.source == Sources.MEDIA_STORE) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && row.inMediaStore) {
                 waiting = row
-                val request = MediaStore.createDeleteRequest(context.contentResolver, listOf(Uri.parse(row.media.uri)))
+                val request = MediaStore.createDeleteRequest(context.contentResolver, listOf(Uri.parse(row.uri)))
                 systemRequest.launch(IntentSenderRequest.Builder(request.intentSender).build())
             } else {
                 confirming = row
@@ -143,20 +196,20 @@ fun rememberDeleteMedia(vm: LibraryViewModel): (LibraryRow) -> Unit {
     }
 }
 
-private fun failed(context: Context, row: LibraryRow) {
-    Toast.makeText(context, "Couldn't delete “${row.media.title}”", Toast.LENGTH_LONG).show()
+private fun failed(context: Context, row: DeletableFile) {
+    Toast.makeText(context, "Couldn't delete “${row.title}”", Toast.LENGTH_LONG).show()
 }
 
 /** Deletes the file behind [row] without asking (the user already confirmed). */
-private suspend fun deleteFile(context: Context, row: LibraryRow): DeleteOutcome = withContext(Dispatchers.IO) {
-    val uri = Uri.parse(row.media.uri)
+private suspend fun deleteFile(context: Context, row: DeletableFile): DeleteOutcome = withContext(Dispatchers.IO) {
+    val uri = Uri.parse(row.uri)
     val resolver = context.contentResolver
     try {
         when {
-            row.media.source == Sources.FOLDER || DocumentsContract.isDocumentUri(context, uri) ->
-                if (DocumentsContract.deleteDocument(resolver, uri)) DeleteOutcome.Deleted else DeleteOutcome.Failed("Couldn't delete “${row.media.title}”")
+            row.source == Sources.FOLDER || DocumentsContract.isDocumentUri(context, uri) ->
+                if (DocumentsContract.deleteDocument(resolver, uri)) DeleteOutcome.Deleted else DeleteOutcome.Failed("Couldn't delete “${row.title}”")
             uri.scheme == "file" ->
-                if (File(uri.path.orEmpty()).delete()) DeleteOutcome.Deleted else DeleteOutcome.Failed("Couldn't delete “${row.media.title}”")
+                if (File(uri.path.orEmpty()).delete()) DeleteOutcome.Deleted else DeleteOutcome.Failed("Couldn't delete “${row.title}”")
             Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
                 ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ->
                 DeleteOutcome.NeedsWritePermission
@@ -166,12 +219,12 @@ private suspend fun deleteFile(context: Context, row: LibraryRow): DeleteOutcome
     } catch (e: SecurityException) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && e is RecoverableSecurityException) {
             DeleteOutcome.NeedsApproval(e.userAction.actionIntent.intentSender)
-        } else if (row.media.source == Sources.FOLDER) {
+        } else if (row.source == Sources.FOLDER) {
             DeleteOutcome.Failed("Mvoon may only read this folder. Remove it in Settings → Library, add it again, then delete.")
         } else {
-            DeleteOutcome.Failed("Android didn't allow deleting “${row.media.title}”")
+            DeleteOutcome.Failed("Android didn't allow deleting “${row.title}”")
         }
     } catch (e: Exception) {
-        DeleteOutcome.Failed("Couldn't delete “${row.media.title}”")
+        DeleteOutcome.Failed("Couldn't delete “${row.title}”")
     }
 }

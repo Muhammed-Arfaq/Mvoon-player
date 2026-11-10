@@ -4,10 +4,11 @@
 
 <img src="branding/mvoon-icon-512.png" width="96" alt="Mvoon icon"> 
 
-- **Install (almost every phone):** `dist/Mvoon-1.6.0-arm64-v8a.apk` (signed, Android 8.0+).
-- **Any device:** `dist/Mvoon-1.6.0-universal.apk` (arm64, armv7 and x86_64 in one file).
-- **Google Play:** `dist/Mvoon-1.6.0.aab` (Play delivers only the parts each phone needs). Source for this release: `dist/Mvoon-1.6.0-source.zip`. How to publish, step by step: [`PUBLISHING.md`](PUBLISHING.md).
+- **Install (almost every phone):** `dist/Mvoon-1.7.0-arm64-v8a.apk` (signed, Android 8.0+).
+- **Any device:** `dist/Mvoon-1.7.0-universal.apk` (arm64, armv7 and x86_64 in one file).
+- **Google Play:** `dist/Mvoon-1.7.0.aab` (Play delivers only the parts each phone needs). Source for this release: `dist/Mvoon-1.7.0-source.zip`. How to publish, step by step: [`PUBLISHING.md`](PUBLISHING.md).
 - **Licence:** GPL-3.0-or-later ([`LICENSE`](LICENSE)); third-party software and where its source lives: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md); privacy: [`PRIVACY.md`](PRIVACY.md).
+- **1.7.0:** while a video or song plays, **⋮ → Options** has **Favourite**, **Add to playlist** and **Delete from device** (the next file in the queue plays on; with nothing left the player closes); songs also get a heart in the player's top bar.
 - **1.6.0:** a paused video now comes back where it was when you return after a long break (before, Android could release the player in the background and Play did nothing); Mvoon shows as **one card in Recents**; **press and hold** the video for fast playback (slide sideways for 1.5×–4×); **double-tap the middle** to pause or play, with a visible flash; a **round play button** that continues your last video (as in MX Player); **Delete from device** for videos and songs; Home no longer shows *Continue watching* or *New in music*.
 - **1.5.1:** the crescent-moon logo (first drawn for Ceruvi) is back as Mvoon's logo; installs over 1.5.0.
 - **1.5.0:** renamed to **Mvoon** (store title *Mvoon Player*) with a full-moon logo; package `app.mvoon`.
@@ -15,7 +16,7 @@
 - **1.3.0:** the blue palette everywhere (app, logo, launcher icon, splash, generated artwork), *Watching / Listening* shelves of recently played items on Home, and a layout pass so nothing breaks on small screens or with large fonts.
 - **1.2.0:** a redesign (notched animated navigation, home dashboard, skeleton loading), every audio track selectable (including ones only VLC can decode), volume up to 200 %, and proper artwork for songs without covers.
 - **1.1.0:** the **VLC compatibility engine** for files the phone can't play (WMV, RealMedia, MPEG-2, old DivX…).
-- Each version installs over the previous one and keeps your library and history. **Exceptions:** 1.4.0 (`app.ceruvi`) and 1.5.0 (`app.mvoon`) each have a new package name (1.5.1 and 1.6.0 update it normally), so each installs as a separate app; uninstall the older ones (Opalvue, Ceruvi) when you no longer need them.
+- Each version installs over the previous one and keeps your library and history. **Exceptions:** 1.4.0 (`app.ceruvi`) and 1.5.0 (`app.mvoon`) each have a new package name (1.5.1, 1.6.0 and 1.7.0 update it normally), so each installs as a separate app; uninstall the older ones (Opalvue, Ceruvi) when you no longer need them.
 - **Package:** `app.mvoon`.
 
 ---
@@ -120,6 +121,7 @@ The UI talks to `core.player.PlayerEngine`, not to Media3. `core` and `subtitles
 - Resume: always / ask / never, with a non-intrusive "Resumed · Start over" pill.
 - Media notification and lock-screen controls with ±10 s; Bluetooth and headset buttons.
 - **Comes back after a long pause:** Android stops a paused player's background service after a while (Media3 lets it go after about ten minutes), which released the player. Returning to the player now reloads the file paused at the exact spot (same queue, speed and engine), so Play just works; the same happens if Android ended the app in the background.
+- **The playing file, from the player** (⋮ → Options, top row): **Favourite** (library files), **Add to playlist** (pick one or create a new one), **Delete from device** (library and Android media files; playback pauses while Android asks, then carries on — with the next file in the queue if this one was deleted, or the player closes when nothing is left). Songs also have a heart next to ⋮.
 - **One card in Recents:** the player opens on top of the library in the app's own task (picture-in-picture still floats on its own).
 - Pause when headphones are unplugged; audio-focus handling for calls and other apps.
 
@@ -158,7 +160,7 @@ The UI talks to `core.player.PlayerEngine`, not to Media3. `core` and `subtitles
 - Videos / Music / Folders / Playlists, with search, sort (date, name, length, size, last played) and filters (favourites, unwatched, in progress, recent).
 - Thumbnails, favourites, playlists (create, rename, reorder, delete), recently played, hide folders.
 - **Round play button** (Home, Videos and Folders, like MX Player's): continues the video you watched last, where you left it, with the rest of its folder queued; a ring shows how far in you are. Hidden while something plays (the mini player is there then).
-- **Delete from device** (long-press menu): on Android 11+ the system asks for confirmation itself; older versions and files in added folders get Mvoon's confirmation. The file also disappears from history, favourites and playlists.
+- **Delete from device** (long-press menu, or from the player): on Android 11+ the system asks for confirmation itself; older versions and files in added folders get Mvoon's confirmation. The file also disappears from history, favourites and playlists.
 - Grid or list layout; mini-player.
 - Sources:
   - internal storage and SD cards (MediaStore);
@@ -218,7 +220,7 @@ python tools/fetch_third_party_sources.py # dist/sources/: exact FFmpeg / libVLC
 - Without `keystore.properties`, release builds fall back to the debug key.
 
 **Install on your phone:**
-1. Copy `dist/Mvoon-1.6.0-arm64-v8a.apk` to the phone, open it, and allow "Install unknown apps" for your file manager. Or, with USB debugging on, run `adb install dist/Mvoon-1.6.0-arm64-v8a.apk`. (Very old 32-bit phones: use the universal APK.)
+1. Copy `dist/Mvoon-1.7.0-arm64-v8a.apk` to the phone, open it, and allow "Install unknown apps" for your file manager. Or, with USB debugging on, run `adb install dist/Mvoon-1.7.0-arm64-v8a.apk`. (Very old 32-bit phones: use the universal APK.)
 2. On first launch, tap **Allow access to videos & music** (or *Choose folders instead*).
 
 **Compatibility-engine test samples** are not in the public repository (they aren't ours to redistribute). Before running `CompatibilityEngineTest`, download `welcome3.wmv`, `nokia_n90.wmv`, `firstrun.rm` and `divx5.avi` from https://samples.ffmpeg.org into `app/src/androidTest/assets/media/compat/`.
@@ -231,7 +233,7 @@ python tools/fetch_third_party_sources.py # dist/sources/: exact FFmpeg / libVLC
 
 Everything below ran on the **Android 16 (API 36) x86_64 emulator**. That image has **no AC-3/E-AC-3/DTS/TrueHD decoder**, which is the same situation as most phones. Media came from AndroidX Media3's public test samples plus a generated MKV containing H.264 video, an E-AC-3 5.1 track ("eng"), an AC-3 5.1 track ("ger"), two embedded SRT tracks, and UTF-8 and Windows-1251 sidecar SRTs.
 
-**Automated (1.6.0): 32 JVM unit tests + 16 instrumented tests, all passing**
+**Automated (1.7.0): 32 JVM unit tests + 18 instrumented tests, all passing**
 
 | Test | Measured result |
 |---|---|
@@ -247,6 +249,7 @@ Everything below ran on the **Android 16 (API 36) x86_64 emulator**. That image 
 | Engine released while paused at 3 s (what Android does to a paused background player), then restored | back at 3 s, paused, speed kept; Play continues from there |
 | Double-tap in the middle / on the right; press and hold, slide 240 px, let go | play-pause / seek; fast playback starts, the slide is reported, lifting ends it — and none of it counts as a tap or a seek |
 | Hold-speed steps | 2× by default (or the last pick), one step per 40 dp, 1.5×–4× clamped |
+| Deleting while a 3-file queue plays (system engine, and again on VLC) | a later file just leaves the queue; deleting the playing file moves on to the next and keeps playing; deleting the last one stops playback (the player closes) |
 | Seek in MKV | landed exactly on target |
 | **Compatibility engine:** WMV 9 + WMA 2 in ASF, MS-MPEG-4 + WMA 2 in ASF, RealAudio Cook (`.rm`), DivX 5 in AVI | Media3 rejects all four (no ASF/RM extractor; DivX 5 decoder failed on the emulator) and reports a reason; VLC plays each with **pictures displayed and audio buffers played** (libVLC decoder statistics), e.g. WMV 9 640×480: 26 frames shown, 1 late |
 | **VLC on the multi-audio MKV** | E-AC-3 5.1 and AC-3 5.1 both decoded and *heard* (played-buffer counters rise after switching); embedded + sidecar subtitles listed with languages; French auto-selected by preference; sidecar selectable; delays applied; seek lands on target; pause freezes the clock |
@@ -280,6 +283,7 @@ Everything below ran on the **Android 16 (API 36) x86_64 emulator**. That image 
   - PiP in and out with live video; subtitle panels show the VLC note;
   - **upgrade 1.0.0 → 1.1.0** over an existing install: Room migration 1 → 2 kept the history.
 
+- **1.7.0 (release build):** while a video played, ⋮ → Options showed Favourite / Playlist / Delete on top; Favourite turned coral ("Added to favourites", visible beside the side panel in landscape); Playlist → "Road trip" created with the video in it; Delete → Android's "Allow Mvoon to delete this video?" → the file left the device and the next episode started playing by itself; Deny → playback resumed and the file stayed; deleting the last file closed the player. The music player's heart turned a song into a favourite.
 - **1.6.0 (release build, installed as an update over 1.5.1 with history kept):**
   - the bug first reproduced on 1.5.1: paused, went Home, playback service stopped (`am stopservice`, as Android does after ~10 minutes), reopened from Recents → empty player, Play did nothing. On 1.6.0 the same steps bring the video back paused at the same spot — on the system engine (MKV), on the VLC engine (WMV, AV1 at 4:06) and after the whole app process was killed (`am kill`);
   - Recents shows one Mvoon card with the player open (1.5.1 showed two); "Open with" lands in the player; picture-in-picture enters, expands back on top of the library, and closing it leaves the library in place;

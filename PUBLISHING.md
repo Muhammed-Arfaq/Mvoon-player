@@ -9,12 +9,12 @@ honest **answers to the shop's safety questions**, and **12 friends who test it 
 - New name **Mvoon** + crescent-moon logo. mvoon.com and mvoon.app were not registered on 3 Nov 2026 and no
   Play app uses the name. ⚠️ A US trademark **MVON** (developer software) is one letter away, so ask
   a trademark lawyer before you spend money on the brand.
-- Package name `app.mvoon`, version 1.6.0, built for Android 16 (Google's 2026 rule).
-- The box: **`dist/Mvoon-1.6.0.aab`** (this is the file Play wants, not the APK).
+- Package name `app.mvoon`, version 1.7.0, built for Android 16 (Google's 2026 rule).
+- The box: **`dist/Mvoon-1.7.0.aab`** (this is the file Play wants, not the APK).
 - The label: text in `store/listing.md`, icon, feature graphic and screenshots in `store/`.
 - Privacy policy: `PRIVACY.md`. Licence: `LICENSE` (GPL-3.0) and `THIRD_PARTY_NOTICES.md`.
 - In the app: Settings → About shows the source-code link, the privacy policy and every licence.
-- The recipe (source code) zip: `dist/Mvoon-1.6.0-source.zip` (no secrets inside).
+- The recipe (source code) zip: `dist/Mvoon-1.7.0-source.zip` (no secrets inside).
 
 ## 1. Grab the name before someone else does (today, ~$25/year)
 
@@ -41,12 +41,12 @@ them the recipe.* So the code has to be public **before** the app is.
    ```
    git init -b main
    git add .
-   git commit -m "Mvoon 1.6.0"
+   git commit -m "Mvoon 1.7.0"
    git remote add origin https://github.com/mvoon/mvoon.git
    git push -u origin main
    ```
-3. On GitHub, make a **Release** called `v1.6.0` and attach:
-   - `dist/Mvoon-1.6.0-source.zip`;
+3. On GitHub, make a **Release** called `v1.7.0` and attach:
+   - `dist/Mvoon-1.7.0-source.zip`;
    - the 6 files that `python tools/fetch_third_party_sources.py` downloads into `dist/sources/`.
 4. Open `github.com/mvoon/mvoon` and `…/blob/main/PRIVACY.md` and check that both pages load.
 
@@ -79,7 +79,7 @@ Category: **Video Players & Editors**. Add your contact email.
 New personal accounts must do this once per app.
 
 1. **Testing → Closed testing → Create track.** Add **12 or more** testers by Gmail address.
-2. **Create release** → upload `dist/Mvoon-1.6.0.aab` → accept **Play App Signing**.
+2. **Create release** → upload `dist/Mvoon-1.7.0.aab` → accept **Play App Signing**.
 3. Send testers the opt-in link. They install Mvoon and **keep it for 14 days in a row**.
 4. After 14 days: **Dashboard → Apply for production** and answer the short questions.
 

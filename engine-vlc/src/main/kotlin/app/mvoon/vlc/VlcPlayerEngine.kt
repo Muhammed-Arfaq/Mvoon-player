@@ -613,6 +613,25 @@ class VlcPlayerEngine(private val context: Context) : AndroidPlayerEngine {
         }
     }
 
+    override fun removeFromQueue(itemId: String) {
+        val removed = queue.indexOfFirst { it.id == itemId }
+        if (removed < 0) return
+        if (queue.size == 1) {
+            stop()
+            return
+        }
+        queue = queue.toMutableList().also { it.removeAt(removed) }
+        when {
+            // The current file is gone: carry on with the one that took its place (or the new last one).
+            removed == index -> index.coerceAtMost(queue.lastIndex).let { open(it, queue[it].startPositionMs, playWhenReady) }
+            removed < index -> {
+                index--
+                publish()
+            }
+            else -> publish()
+        }
+    }
+
     private fun releaseMediaPlayer() {
         val p = player ?: return
         player = null

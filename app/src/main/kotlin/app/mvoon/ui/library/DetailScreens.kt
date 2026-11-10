@@ -88,7 +88,7 @@ fun FolderScreen(vm: LibraryViewModel, folderKey: String, onBack: () -> Unit) {
     val rows by remember(folderKey) { vm.repo.folderItems(folderKey) }.collectAsState(initial = emptyList())
     val sorted = remember(rows) { rows.sortedWith { a, b -> naturalCompare(a.media.title, b.media.title) } }
     var actionRow by remember { mutableStateOf<LibraryRow?>(null) }
-    val deleteMedia = rememberDeleteMedia(vm)
+    val deleteMedia = rememberDeleteMedia(onDeleted = vm::onDeleted)
     val playlists by vm.playlists.collectAsStateWithLifecycle()
     var playlistTarget by remember { mutableStateOf<LibraryRow?>(null) }
     Scaffold(
@@ -125,7 +125,7 @@ fun FolderScreen(vm: LibraryViewModel, folderKey: String, onBack: () -> Unit) {
             onWatched = { vm.setWatched(row.media.id, it) },
             onAddToPlaylist = { playlistTarget = row; actionRow = null },
             onHideFolder = { vm.hideFolder(row.media.folderKey); onBack() },
-            onDelete = { deleteMedia(row) },
+            onDelete = { deleteMedia(row.toDeletable()) },
         )
     }
     playlistTarget?.let { row ->

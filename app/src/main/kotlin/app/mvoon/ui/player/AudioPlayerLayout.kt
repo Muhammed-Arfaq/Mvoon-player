@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +50,7 @@ import app.mvoon.ui.theme.TabularNumbers
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.EllipsisVertical
+import com.composables.icons.lucide.Heart
 import com.composables.icons.lucide.ListVideo
 import com.composables.icons.lucide.Moon
 import com.composables.icons.lucide.Repeat
@@ -64,6 +67,9 @@ fun AudioPlayerLayout(
     onRepeat: () -> Unit,
     onShuffle: () -> Unit,
     safePadding: PaddingValues,
+    /** Null when the song can't be a favourite (not in the library). */
+    favorite: Boolean?,
+    onFavorite: () -> Unit,
 ) {
     val item = state.currentItem
     Box(Modifier.fillMaxSize().background(Brand.Midnight)) {
@@ -78,6 +84,8 @@ fun AudioPlayerLayout(
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
                     ControlIcon(Lucide.ChevronLeft, "Back", actions.back)
+                    // Balances the heart on the right so the title stays centred.
+                    if (favorite != null) Spacer(Modifier.size(48.dp))
                     Text(
                         "Now playing",
                         style = MaterialTheme.typography.labelLarge,
@@ -85,6 +93,14 @@ fun AudioPlayerLayout(
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center,
                     )
+                    if (favorite != null) {
+                        ControlIcon(
+                            if (favorite) Icons.Rounded.Favorite else Lucide.Heart,
+                            if (favorite) "Remove from favourites" else "Add to favourites",
+                            onFavorite,
+                            tint = if (favorite) Brand.Coral else Color.White,
+                        )
+                    }
                     ControlIcon(Lucide.EllipsisVertical, "More options", { actions.openPanel(Panel.MORE) })
                 }
                 if (landscape) {

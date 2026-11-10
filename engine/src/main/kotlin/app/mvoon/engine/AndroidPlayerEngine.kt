@@ -16,6 +16,12 @@ interface AndroidPlayerEngine : PlayerEngine {
 
     /** Replaces an upcoming queue entry (e.g. once its sidecar subtitles were found). */
     fun updateQueueItem(index: Int, item: PlayableItem)
+
+    /**
+     * Takes an item out of the queue (its file was deleted). Removing the current item moves on to
+     * the one after it; removing the last remaining item stops playback.
+     */
+    fun removeFromQueue(itemId: String)
     fun updateConfig(newConfig: EngineConfig)
 
     /** The player the [androidx.media3.session.MediaSession] should expose right now. */
